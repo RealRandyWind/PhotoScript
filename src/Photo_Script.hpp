@@ -1,6 +1,7 @@
 #ifndef PHOTO_SCRIPT_HPP
 #define PHOTO_SCRIPT_HPP
 
+#define HASH_SIZE 8
 #define CAMERA_MAX 64
 #define CAMERA_FPOINTS_MAX 512
 #define ADAPTER_MAX 32
@@ -30,7 +31,7 @@ static const FReal Focus_Infinite = 0.0;
 
 struct FUUID
 {
-	unsigned int A, B, C, D, E;
+	unsigned int Hash[HASH_SIZE];
 };
 
 struct FAdapter

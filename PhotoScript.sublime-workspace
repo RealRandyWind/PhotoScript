@@ -520,10 +520,10 @@
 	"buffers":
 	[
 		{
-			"file": "/C/Users/Gebruiker/Desktop/PhotoScript2.c",
+			"file": "src/Photo_Script.hpp",
 			"settings":
 			{
-				"buffer_size": 6001,
+				"buffer_size": 1848,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
@@ -563,8 +563,22 @@
 		"side_bar_visible": false,
 		"status_bar_visible": false
 	},
+	"expanded_folders":
+	[
+		"/D/Repositories/PhotoScript",
+		"/D/Repositories/PhotoScript/adapters",
+		"/D/Repositories/PhotoScript/includes",
+		"/D/Repositories/PhotoScript/src"
+	],
 	"file_history":
 	[
+		"/C/Users/Gebruiker/Desktop/PhotoScript2.c",
+		"/D/Repositories/PhotoScript/adapters/Nikkon_D7000.cpp",
+		"/D/Repositories/PhotoScript/src/Photo_Script.hpp",
+		"/D/Repositories/PhotoScript/adapters/Nikkon_D7000.hpp",
+		"/D/Repositories/PhotoScript/adapters/Nikkon_D7000",
+		"/D/Repositories/PhotoScript/src/Photo_Script.cpp",
+		"/D/Repositories/PhotoScript/src/Photo_Script",
 		"/C/Users/Gebruiker/Desktop/PhotoScript.c",
 		"/D/Repositories/Algorithms/display.hpp",
 		"/C/Users/Gebruiker/Desktop/resolvers.cpp",
@@ -693,27 +707,28 @@
 			[
 				{
 					"buffer": 0,
-					"file": "/C/Users/Gebruiker/Desktop/PhotoScript2.c",
+					"file": "src/Photo_Script.hpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6001,
+						"buffer_size": 1848,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1004,
-								1004
+								123,
+								123
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C Improved/C Improved.tmLanguage"
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 507.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
