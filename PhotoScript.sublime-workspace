@@ -523,9 +523,45 @@
 			"file": "src/Photo_Script.hpp",
 			"settings":
 			{
-				"buffer_size": 1848,
+				"buffer_size": 1881,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "src/Photo_Script_Parser.cpp",
+			"settings":
+			{
+				"buffer_size": 0,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "src/Photo_Script.cpp",
+			"settings":
+			{
+				"buffer_size": 2378,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "\t//================================================================================================\n// Copyright Nikon Corporation - All rights reserved\n//\n// View this file in a non-proportional font, tabs = 3\n//================================================================================================\n\n#include\t<stdlib.h>\n#include\t<stdio.h>\n#include\t\"maid3.h\"\n#include\t\"maid3d1.h\"\n#include\t\"CtrlSample.h\"\n\nLPMAIDEntryPointProc\tg_pMAIDEntryPoint = NULL;\nUCHAR\tg_bFileRemoved = false;\nULONG\tg_ulCameraType = 0;\t// CameraType\n\n#if defined( _WIN32 )\n\tHINSTANCE\tg_hInstModule = NULL;\n#elif defined(__APPLE__)\n    CFBundleRef gBundle = NULL;\n#endif\n\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nint main()\n{\n#if defined( _WIN32 )\n\tchar\tModulePath[MAX_PATH];\n#elif defined(__APPLE__)\n\tFSRef ModuleRef;\n#endif\n\tLPRefObj\tpRefMod = NULL, pRefSrc = NULL, RefItm = NULL, pRefDat = NULL;\n\tchar\tbuf[256];\n\tULONG\tulModID = 0, ulSrcID = 0;\n\tUWORD\twSel;\n\tBOOL\tbRet;\n\n\t// Search for a Module-file like \"Type0004.md3\".\n#if defined( _WIN32 )\n\tbRet = Search_Module( ModulePath );\n#elif defined(__APPLE__)\n\tbRet = Search_Module( &ModuleRef );\n#endif\n\tif ( bRet == false ) {\n\t\tputs( \"\\\"Type0004 Module\\\" is not found.\\n\" );\n\t\treturn -1;\n\t}\n\n\t// Load the Module-file.\n#if defined( _WIN32 )\n\tbRet = Load_Module( ModulePath );\n#elif defined(__APPLE__)\n\tbRet = Load_Module( &ModuleRef );\n#endif\n\tif ( bRet == false ) {\n\t\tputs( \"Failed in loading \\\"Type0004 Module\\\".\\n\" );\n\t\treturn -1;\n\t}\n\n\t// Allocate memory for reference to Module object.\n\tpRefMod = (LPRefObj)malloc(sizeof(RefObj));\n\tif ( pRefMod == NULL ) {\n\t\tputs( \"There is not enough memory.\" );\n\t\treturn -1;\n\t}\n\tInitRefObj( pRefMod );\n\n\t// Allocate memory for Module object.\n\tpRefMod->pObject = (LPNkMAIDObject)malloc(sizeof(NkMAIDObject));\n\tif ( pRefMod->pObject == NULL ) {\n\t\tputs( \"There is not enough memory.\" );\n\t\tif ( pRefMod != NULL )\tfree( pRefMod );\n\t\treturn -1;\n\t}\n\n\t//\tOpen Module object\n\tpRefMod->pObject->refClient = (NKREF)pRefMod;\n\tbRet = Command_Open(\tNULL,\t\t\t\t\t// When Module_Object will be opend, \"pParentObj\" is \"NULL\".\n\t\t\t\t\t\t\t\tpRefMod->pObject,\t// Pointer to Module_Object \n\t\t\t\t\t\t\t\tulModID );\t\t\t// Module object ID set by Client\n\tif ( bRet == false ) {\n\t\tputs( \"Module object can't be opened.\\n\" );\n\t\tif ( pRefMod->pObject != NULL )\tfree( pRefMod->pObject );\n\t\tif ( pRefMod != NULL )\tfree( pRefMod );\n\t\treturn -1;\n\t}\n\n\t//\tEnumerate Capabilities that the Module has.\n\tbRet = EnumCapabilities( pRefMod->pObject, &(pRefMod->ulCapCount), &(pRefMod->pCapArray), NULL, NULL );\n\tif ( bRet == false ) {\n\t\tputs( \"Failed in enumeration of capabilities.\" );\n\t\tif ( pRefMod->pObject != NULL )\tfree( pRefMod->pObject );\n\t\tif ( pRefMod != NULL )\tfree( pRefMod );\n\t\treturn -1;\n\t}\n\n\t//\tSet the callback functions(ProgressProc, EventProc and UIRequestProc).\n\tbRet = SetProc( pRefMod );\n\tif ( bRet == false ) {\n\t\tputs( \"Failed in setting a call back function.\" );\n\t\tif ( pRefMod->pObject != NULL )\tfree( pRefMod->pObject );\n\t\tif ( pRefMod != NULL )\tfree( pRefMod );\n\t\treturn -1;\n\t}\n\n\t//\tSet the kNkMAIDCapability_ModuleMode.\n\tif( CheckCapabilityOperation( pRefMod, kNkMAIDCapability_ModuleMode, kNkMAIDCapOperation_Set )  ){\n\t\tbRet = Command_CapSet( pRefMod->pObject, kNkMAIDCapability_ModuleMode, kNkMAIDDataType_Unsigned, \n\t\t\t\t\t\t\t\t\t\t(NKPARAM)kNkMAIDModuleMode_Controller, NULL, NULL);\n\t\tif ( bRet == false ) {\n\t\t\tputs( \"Failed in setting kNkMAIDCapability_ModuleMode.\" );\n\t\t\treturn -1;\n\t\t}\n\t}\n\n\t// Module Command Loop\n\tdo {\n\t\tprintf( \"\\nSelect (1-6, 0)\\n\" );\n\t\tprintf( \" 1. Select Device            2. AsyncRate                3. IsAlive\\n\" );\n\t\tprintf( \" 4. Name                     5. ModuleType               6. Version\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// Children\n\t\t\t\t// Select Device\n\t\t\t\tulSrcID = 0;\t// 0 means Device count is zero. \n\t\t\t\tbRet = SelectSource( pRefMod, &ulSrcID );\n\t\t\t\tif ( bRet == false ) break;\n\t\t\t\tif( ulSrcID > 0 )\n\t\t\t\t\tbRet = SourceCommandLoop( pRefMod, ulSrcID );\n\t\t\t\tbreak;\n\t\t\tcase 2:// AsyncRate\n\t\t\t\tbRet = SetUnsignedCapability( pRefMod, kNkMAIDCapability_AsyncRate );\n\t\t\t\tbreak;\n\t\t\tcase 3:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefMod, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Name\n\t\t\t\tbRet = SetStringCapability( pRefMod, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 5:// ModuleType\n\t\t\t\tbRet = SetUnsignedCapability( pRefMod, kNkMAIDCapability_ModuleType );\n\t\t\t\tbreak;\n\t\t\tcase 6:// Version\n\t\t\t\tbRet = SetUnsignedCapability( pRefMod, kNkMAIDCapability_Version );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel > 0 && bRet == TRUE );\n\n\t// Close Module_Object\n\tbRet = Close_Module( pRefMod );\n\tif ( bRet == false )\n\t\tputs( \"Module object can not be closed.\\n\" );\n\n\t// Unload Module\n#if defined( _WIN32 )\n\tFreeLibrary( g_hInstModule );\n\tg_hInstModule = NULL;\n#elif defined(__APPLE__)\n    if (gBundle != NULL)\n    {\n        CFBundleUnloadExecutable(gBundle);\n        CFRelease(gBundle);\n        gBundle = NULL;\n    }\n#endif\n\n\t// Free memory blocks allocated in this function.\n\tif ( pRefMod->pObject != NULL )\tfree( pRefMod->pObject );\n\tif ( pRefMod != NULL )\tfree( pRefMod );\n\t\n\tputs( \"This sample program has terminated.\\n\" );\n\treturn 0;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL SourceCommandLoop( LPRefObj pRefMod, ULONG ulSrcID )\n{\n\tLPRefObj\tpRefSrc = NULL;\n\tchar\tbuf[256];\n\tULONG\tulItemID = 0;\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tpRefSrc = GetRefChildPtr_ID( pRefMod, ulSrcID );\n\tif ( pRefSrc == NULL ) {\n\t\t// Create Source object and RefSrc structure.\n\t\tif ( AddChild( pRefMod, ulSrcID ) == TRUE ) {\n\t\t\tprintf(\"Source object is opened.\\n\");\n\t\t} else {\n\t\t\tprintf(\"Source object can't be opened.\\n\");\n\t\t\treturn false;\n\t\t}\n\t\tpRefSrc = GetRefChildPtr_ID( pRefMod, ulSrcID );\n\t}\n\n\t// Get CameraType\n\tCommand_CapGet( pRefSrc->pObject, kNkMAIDCapability_CameraType, kNkMAIDDataType_UnsignedPtr, (NKPARAM)&g_ulCameraType, NULL, NULL );\n\n\t// command loop\n\tdo {\n\t\tprintf( \"\\nSelect (1-9, 0)\\n\" );\n\t\tprintf( \" 1. Select Item Object       2. Camera settings(1)       3. Camera settings(2)\\n\" );\n\t\tprintf( \" 4. Shooting Menu            5. Custom Menu              6. Async\\n\" );\n\t\tprintf( \" 7. Autofocus                8. Capture                  9. PreCapture\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// Children\n\t\t\t\t// Select Item  Object\n\t\t\t\tulItemID = 0;\n\t\t\t\tbRet = SelectItem( pRefSrc, &ulItemID );\n\t\t\t\tif( bRet == TRUE && ulItemID > 0 )\n\t\t\t\t\tbRet = ItemCommandLoop( pRefSrc, ulItemID );\n\t\t\t\tbreak;\n\t\t\tcase 2:// Camera setting 1\n\t\t\t\tbRet = SetUpCamera1( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 3:// Camera setting 2\n\t\t\t\tbRet = SetUpCamera2( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Shooting Menu\n\t\t\t\tbRet = SetShootingMenu( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 5:// CustomSetting Menu\n\t\t\t\tbRet = SetCustomSettings( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 6:// Async\n\t\t\t\tbRet = Command_Async( pRefMod->pObject );\n\t\t\t\tbreak;\n\t\t\tcase 7:// AutoFocus\n\t\t\t\tbRet = IssueProcess( pRefSrc, kNkMAIDCapability_AutoFocus );\n\t\t\t\tbreak;\n\t\t\tcase 8:// Capture\n\t\t\t\tbRet = IssueProcess( pRefSrc, kNkMAIDCapability_Capture );\n\t\t\t\tCommand_Async( pRefSrc->pObject );\n\t\t\t\tbreak;\n\t\t\tcase 9:// PreCapture\n\t\t\t\tbRet = IssueProcess( pRefSrc, kNkMAIDCapability_PreCapture );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t\tWaitEvent();\n\t} while( wSel > 0 );\n\n// Close Source_Object\n\tbRet = RemoveChild( pRefMod, ulSrcID );\n\n\treturn true;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL SetUpCamera1( LPRefObj pRefSrc ) \n{\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tdo {\n\t\t// Wait for selection by user\n\t\tprintf( \"\\nSelect the item you want to set up\\n\" );\n\t\tprintf( \" 1. IsAlive                  2. Name                      3. Interface\\n\" );\n\t\tprintf( \" 4. DataTypes                5. BatteryLevel              6. FlashMode\\n\" );\n\t\tprintf( \" 7. LockFocus                8. LockExposure              9. ExposureStatus\\n\" );\n\t\tprintf( \"10. ExposureMode            11. ShutterSpeed             12. Aperture\\n\" );\n\t\tprintf( \"13. FlexibleProgram         14. ExposureComp             15. MeteringMode\\n\" );\n\t\tprintf( \"16. FocusMode               17. FocusAreaMode            18. FocusPreferredArea\\n\" );\n\t\tprintf( \"19. FocalLength             20. ClockDateTime\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 2:// Name\n\t\t\t\tbRet = SetStringCapability( pRefSrc, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 3:// Interface\n\t\t\t\tbRet = SetStringCapability( pRefSrc, kNkMAIDCapability_Interface );\n\t\t\t\tbreak;\n\t\t\tcase 4:// DataTypes\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_DataTypes );\n\t\t\t\tbreak;\n\t\t\tcase 5:// BatteryLevel\n\t\t\t\tbRet = SetIntegerCapability( pRefSrc, kNkMAIDCapability_BatteryLevel );\n\t\t\t\tbreak;\n\t\t\tcase 6:// FlashMode\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_FlashMode );\n\t\t\t\tbreak;\n\t\t\tcase 7:// LockFocus\n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_LockFocus );\n\t\t\t\tbreak;\n\t\t\tcase 8:// LockExposure\n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_LockExposure );\n\t\t\t\tbreak;\n\t\t\tcase 9:// ExposureStatus\n\t\t\t\tbRet = SetFloatCapability( pRefSrc, kNkMAIDCapability_ExposureStatus );\n\t\t\t\tbreak;\n\t\t\tcase 10:// ExposureMode\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_ExposureMode );\n\t\t\t\tbreak;\n\t\t\tcase 11:// ShutterSpeed(Exposure Time)\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_ShutterSpeed );\n\t\t\t\tbreak;\n\t\t\tcase 12:// Aperture(F Number)\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_Aperture );\n\t\t\t\tbreak;\n\t\t\tcase 13:// FlexibleProgram\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_FlexibleProgram );\n\t\t\t\tbreak;\n\t\t\tcase 14:// ExposureCompensation\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_ExposureComp );\n\t\t\t\tbreak;\n\t\t\tcase 15:// MeteringMode\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_MeteringMode );\n\t\t\t\tbreak;\n\t\t\tcase 16:// FocusMode\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_FocusMode );\n\t\t\t\tbreak;\n\t\t\tcase 17:// FocusAreaMode\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_FocusAreaMode );\n\t\t\t\tbreak;\n\t\t\tcase 18:// FocusPreferredArea\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_FocusPreferredArea );\n\t\t\t\tbreak;\n\t\t\tcase 19:// FocalLength\n\t\t\t\tbRet = SetFloatCapability( pRefSrc, kNkMAIDCapability_FocalLength );\n\t\t\t\tbreak;\n\t\t\tcase 20:// ClockDateTime\n\t\t\t\tbRet = SetDateTimeCapability( pRefSrc, kNkMAIDCapability_ClockDateTime );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t\t\tbreak;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel != 0 );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL SetUpCamera2( LPRefObj pRefSrc ) \n{\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL bRet = true;\n\n\tdo {\n\t\t// Wait for selection by user\n\t\tprintf( \"\\nSelect the item you want to set up\\n\" );\n\t\tprintf( \" 1. LockCamera             2. LensInfo                  3. UserComment\\n\" );\n\t\tprintf( \" 4. EnableComment          5. IsoControl                6. NoiseReduction\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// LockCamera\n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_LockCamera );\n\t\t\t\tbreak;\n\t\t\tcase 2:// LensInfo\n\t\t\t\tbRet = SetStringCapability( pRefSrc, kNkMAIDCapability_LensInfo );\n\t\t\t\tbreak;\n\t\t\tcase 3:// UserComment\n\t\t\t\tbRet = SetStringCapability( pRefSrc, kNkMAIDCapability_UserComment );\n\t\t\t\tbreak;\n\t\t\tcase 4:// EnableComment\n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_EnableComment );\n\t\t\t\tbreak;\n\t\t\tcase 5:// IsoControl \n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_IsoControl );\n\t\t\t\tbreak;\n\t\t\tcase 6:// NoiseReduction \n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_NoiseReduction );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t\t\tbreak;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel != 0 );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL SetShootingMenu( LPRefObj pRefSrc ) \n{\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tULONG ulPresetNumber = 0;\n\tBOOL bRet = true;\n\n\tdo {\n\t\t// Wait for selection by user\n\t\tprintf( \"\\nSelect the item you want to set up\\n\" );\n\t\tprintf( \" 1. CompressionLevel       2. ImageSize               3. WBMode\\n\" );\n\t\tprintf( \" 4. Sensitivity            5. WBTuneAuto              6. WBTuneIncandescent\\n\" );\n\t\tprintf( \" 7. WBFluorescentType      8. WBTuneFluorescent       9. WBTuneSunny\\n\" );\n\t\tprintf( \"10. WBTuneFlash           11. WBTuneShade            12. WBTuneCloudy\\n\" );\n\t\tprintf( \"13. WBTuneColorTemp       14. WBTuneColorAdjust      15. WBTunePreset\\n\" );\n\t\tprintf( \"16. WBPresetData          17. PictureControl         18. PictureControlData\\n\" );\n\t\tprintf( \"19. GetPicCtrlInfo        20. DeleteCustomPicCtrl    21. LiveViewProhibit\\n\" );\n\t\tprintf( \"22. LiveViewStatus        23. LiveViewImageZoomRate  24. GetLiveViewImage\\n\" );\n\t\tprintf( \"25. MovRecInCardProhibit  26. MovRecInCardStatus\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// Compression Level\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_CompressionLevel );\n\t\t\t\tbreak;\n\t\t\tcase 2:// ImageSize\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_ImageSize );\n\t\t\t\tbreak;\n\t\t\tcase 3:// WBMode\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_WBMode );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Sensitivity\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_Sensitivity );\n\t\t\t\tbreak;\n\t\t\tcase 5:// WBTuneAuto\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneAuto );\n\t\t\t\tbreak;\n\t\t\tcase 6:// WBTuneIncandescent\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneIncandescent );\n\t\t\t\tbreak;\n\t\t\tcase 7:// WBFluorescentType\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_WBFluorescentType );\n\t\t\t\tbreak;\n\t\t\tcase 8:// WBTuneFluorescent\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneFluorescent );\n\t\t\t\tbreak;\n\t\t\tcase 9:// WBTuneSunny \n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneSunny );\n\t\t\t\tbreak;\n\t\t\tcase 10:// WBTuneFlash\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneFlash );\n\t\t\t\tbreak;\n\t\t\tcase 11:// WBTuneShade\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneShade );\n\t\t\t\tbreak;\n\t\t\tcase 12:// WBTuneCloudy\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneCloudy );\n\t\t\t\tbreak;\n\t\t\tcase 13:// WBTuneColorTemp\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_WBTuneColorTemp );\n\t\t\t\tbreak;\n\t\t\tcase 14:// WBTuneColorAdjust\n\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTuneColorAdjust );\n\t\t\t\tbreak;\n\t\t\tcase 15:// WBTunePreset1-5\n\t\t\t\tprintf( \"\\nSelect Preset Number(1-5, 0)\\n\");\n\t\t\t\tprintf( \" 1. d-0\\n\");\n\t\t\t\tprintf( \" 2. d-1\\n\");\n\t\t\t\tprintf( \" 3. d-2\\n\");\n\t\t\t\tprintf( \" 4. d-3\\n\");\n\t\t\t\tprintf( \" 5. d-4\\n\");\n\t\t\t\tprintf( \" 0. Exit\\n>\" );\n\t\t\t\tscanf( \"%s\", buf );\n\t\t\t\tulPresetNumber = atoi( buf );\n\t\t\t\tif ( ulPresetNumber == 0 ) break;\n\t\t\t\tif ( 1 > ulPresetNumber || ulPresetNumber > 5 ) break;\n\t\t\t\tswitch ( ulPresetNumber )\n\t\t\t\t{\n\t\t\t\tcase 1:\n\t\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTunePreset1 );\n\t\t\t\t\tbreak;\n\t\t\t\tcase 2:\n\t\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTunePreset2 );\n\t\t\t\t\tbreak;\n\t\t\t\tcase 3:\n\t\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTunePreset3 );\n\t\t\t\t\tbreak;\n\t\t\t\tcase 4:\n\t\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTunePreset4 );\n\t\t\t\t\tbreak;\n\t\t\t\tcase 5:\n\t\t\t\t\tbRet = SetRangeCapability( pRefSrc, kNkMAIDCapability_WBTunePreset5 );\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t\tbreak;\n\t\t\tcase 16:// WBPresetData\n\t\t\t\tbRet = SetWBPresetDataCapability( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 17:// PictureControl\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_PictureControl );\n\t\t\t\tbreak;\n\t\t\tcase 18:// PictureControlData\n\t\t\t\tbRet = PictureControlDataCapability( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 19:// GetPicCtrlInfo \n\t\t\t\tbRet = GetPictureControlInfoCapability( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 20:// DeleteCustomPictureControl\n\t\t\t\tbRet = DeleteCustomPictureControlCapability( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 21:// LiveViewProhibit\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_LiveViewProhibit );\n\t\t\t\tbreak;\n\t\t\tcase 22:// LiveViewStatus\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_LiveViewStatus );\n\t\t\t\tbreak;\n\t\t\tcase 23:// LiveViewImageZoomRate \n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_LiveViewImageZoomRate );\n\t\t\t\tbreak;\n\t\t\tcase 24:// GetLiveViewImage\n\t\t\t\tbRet = GetLiveViewImageCapability( pRefSrc );\n\t\t\t\tbreak;\n\t\t\tcase 25:// MovRecInCardProhibit\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_MovRecInCardProhibit );\n\t\t\t\tbreak;\n\t\t\tcase 26:// MovRecInCardStatus\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_MovRecInCardStatus );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t\t\tbreak;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel != 0 );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL SetCustomSettings( LPRefObj pRefSrc ) \n{\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL bRet = true;\n\n\tdo {\n\t\t// Wait for selection by user\n\t\tprintf( \"\\nSelect a Custom Setting\\n\" );\n\t\tprintf( \" 1. ResetCustomSetting      2. ResetFileNumber    3. ShootNoCard \\n\" );\n\t\tprintf( \" 4. NumberingMode           5. AutoOffDelay       6. SelfTimerDuration \\n\" );\n\t\tprintf( \" 7. EVInterval              8. BracketingVary     9. BracketingOrder\\n\" );\n\t\tprintf( \"10. ExchangeDials          11. AEAFLockButton    12. AELockonRelease\\n\" );\n\t\tprintf( \"13. LCDBackLight           14. AFAreaSelector    15. AFsPriority\\n\" );\n\t\tprintf( \"16. AFcPriority\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// ResetCustomSetting\n\t\t\t\tbRet = IssueProcess( pRefSrc, kNkMAIDCapability_ResetCustomSetting );\n\t\t\t\tbreak;\n\t\t\tcase 2:// ResetFileNumber\n\t\t\t\tbRet = IssueProcess( pRefSrc, kNkMAIDCapability_ResetFileNumber );\n\t\t\t\tbreak;\n\t\t\tcase 3:// ShootNoCard \n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_ShootNoCard );\n\t\t\t\tbreak;\n\t\t\tcase 4:// NumberingMode\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_NumberingMode );\n\t\t\t\tbreak;\n\t\t\tcase 5:// AutoOffDelay\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_AutoOffDelay );\n\t\t\t\tbreak;\n\t\t\tcase 6:// SelfTimerDuration\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_SelfTimerDuration );\n\t\t\t\tbreak;\n\t\t\tcase 7:// EVInterval\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_EVInterval );\n\t\t\t\tbreak;\n\t\t\tcase 8:// BracketingVary\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_BracketingVary );\n\t\t\t\tbreak;\n\t\t\tcase 9:// BracketingOrder\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_BracketingOrder );\n\t\t\t\tbreak;\n\t\t\tcase 10:// ExchangeDials\n\t\t\t\tbRet = SetUnsignedCapability( pRefSrc, kNkMAIDCapability_ExchangeDialsEx );\n\t\t\t\tbreak;\n\t\t\tcase 11:// AEAFLockButton\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_AEAFLockButton );\n\t\t\t\tbreak;\n\t\t\tcase 12:// AELockonRelease \n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_AELockonRelease );\n\t\t\t\tbreak;\n\t\t\tcase 13:// LCDBackLight \n\t\t\t\tbRet = SetBoolCapability( pRefSrc, kNkMAIDCapability_LCDBackLight );\n\t\t\t\tbreak;\n\t\t\tcase 14:// AFAreaSelector\n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_AFAreaSelector );\n\t\t\t\tbreak;\n\t\t\tcase 15:// AFsPriority \n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_AFsPriority );\n\t\t\t\tbreak;\n\t\t\tcase 16:// AFcPriority \n\t\t\t\tbRet = SetEnumCapability( pRefSrc, kNkMAIDCapability_AFcPriority );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t\t\tbreak;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel != 0 );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL ItemCommandLoop( LPRefObj pRefSrc, ULONG ulItmID )\n{\n\tULONG\tulDataType = 0;\n\tLPRefObj\tpRefItm = NULL;\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tpRefItm = GetRefChildPtr_ID( pRefSrc, ulItmID );\n\tif ( pRefItm == NULL ) {\n\t\t// Create Item object and RefSrc structure.\n\t\tif ( AddChild( pRefSrc, ulItmID ) == TRUE ) {\n\t\t\tprintf(\"Item object is opened.\\n\");\n\t\t} else {\n\t\t\tprintf(\"Item object can't be opened.\\n\");\n\t\t\treturn false;\n\t\t}\n\t\tpRefItm = GetRefChildPtr_ID( pRefSrc, ulItmID );\n\t}\n\n\t// command loop\n\tdo {\n\t\n\t\tprintf( \"\\nSelect (1-7, 0)\\n\" );\n\t\tprintf( \" 1. Select Data Object       2. Delete                   3. IsAlive\\n\" );\n\t\tprintf( \" 4. Name                     5. DataTypes                6. DateTime\\n\" );\n\t\tprintf( \" 7. StoredBytes\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// Show Children\n\t\t\t\t// Select Data Object\n\t\t\t\tulDataType = 0;\n\t\t\t\tbRet = SelectData( pRefItm, &ulDataType );\n\t\t\t\tif ( bRet == false )\treturn false;\n\t\t\t\tif ( ulDataType == kNkMAIDDataObjType_Image )\n\t\t\t\t{\n\t\t\t\t\t// reset file removed flag\n\t\t\t\t\tg_bFileRemoved = false;\n\t\t\t\t\tbRet = ImageCommandLoop( pRefItm, ulDataType );\n\t\t\t\t\t// If the image data was stored in DRAM, the item has been removed after reading image.\n\t\t\t\t\tif ( g_bFileRemoved ) {\n\t\t\t\t\t\tRemoveChild( pRefSrc, ulItmID );\n\t\t\t\t\t\tpRefItm = NULL;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\telse if ( ulDataType == kNkMAIDDataObjType_Video )\n\t\t\t\t{\n\t\t\t\t\t// reset file removed flag\n\t\t\t\t\tg_bFileRemoved = false;\n\t\t\t\t\tbRet = MovieCommandLoop( pRefItm, ulDataType );\n\t\t\t\t\tif ( g_bFileRemoved ) {\n\t\t\t\t\t\tRemoveChild( pRefSrc, ulItmID );\n\t\t\t\t\t\tpRefItm = NULL;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\telse if ( ulDataType == kNkMAIDDataObjType_Thumbnail )\n\t\t\t\t{\n\t\t\t\t\tbRet = ThumbnailCommandLoop( pRefItm, ulDataType );\n\t\t\t\t}\n\t\t\t\tif ( bRet == false )\treturn false;\n\t\t\t\tbreak;\n\t\t\tcase 2:// Delete\n\t\t\t\tulDataType = 0;\n\t\t\t\tbRet = CheckDataType( pRefItm, &ulDataType );\n\t\t\t\tif ( bRet == false )\n\t\t\t\t{\n\t\t\t\t\tputs( \"Movie object is not supported.\\n\" );\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t\tbRet = DeleteDramCapability( pRefItm, ulItmID );\n\t\t\t\tif ( g_bFileRemoved )\n\t\t\t\t{\n\t\t\t\t\t// If Delete was succeed, Item object must be closed. \n\t\t\t\t\tRemoveChild( pRefSrc, ulItmID );\n\t\t\t\t\tpRefItm = NULL;\n\t\t\t\t}\n\t\t\t\tbreak;\n\t\t\tcase 3:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefItm, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Name\n\t\t\t\tbRet = SetStringCapability( pRefItm, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 5:// DataTypes\n\t\t\t\tbRet = SetUnsignedCapability( pRefItm, kNkMAIDCapability_DataTypes );\n\t\t\t\tbreak;\n\t\t\tcase 6:// DateTime\n\t\t\t\tbRet = SetDateTimeCapability( pRefItm, kNkMAIDCapability_DateTime );\n\t\t\t\tbreak;\n\t\t\tcase 7:// StoredBytes\n\t\t\t\tbRet = SetUnsignedCapability( pRefItm, kNkMAIDCapability_StoredBytes );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel > 0 && pRefItm != NULL );\n\n\tif ( pRefItm != NULL ) {\n\t\t// If the item object remains, close it and remove from parent link.\n\t\tbRet = RemoveChild( pRefSrc, ulItmID );\n\t}\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL ImageCommandLoop( LPRefObj pRefItm, ULONG ulDatID )\n{\n\tLPRefObj\tpRefDat = NULL;\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\tif ( pRefDat == NULL ) {\n\t\t// Create Image object and RefSrc structure.\n\t\tif ( AddChild( pRefItm, ulDatID ) == TRUE ) {\n\t\t\tprintf(\"Image object is opened.\\n\");\n\t\t} else {\n\t\t\tprintf(\"Image object can't be opened.\\n\");\n\t\t\treturn false;\n\t\t}\n\t\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\t}\n\n\t// command loop\n\tdo {\n\t\tprintf( \"\\nSelect (1-6, 0)\\n\" );\n\t\tprintf( \" 1. IsAlive                  2. Name                     3. StoredBytes\\n\" );\n\t\tprintf( \" 4. Pixels                   5. RawJpegImageStatus       6. Acquire\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefDat, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 2:// Name\n\t\t\t\tbRet = SetStringCapability( pRefDat, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 3:// StoredBytes\n\t\t\t\tbRet = SetUnsignedCapability( pRefDat, kNkMAIDCapability_StoredBytes );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Show Pixels\n\t\t\t\t// Get to know how many pixels there are in this image.\n\t\t\t\tbRet = SetSizeCapability( pRefDat, kNkMAIDCapability_Pixels );\n\t\t\t\tbreak;\n\t\t\tcase 5:// RawJpegImageStatus\n\t\t\t\tbRet = SetUnsignedCapability( pRefDat, kNkMAIDCapability_RawJpegImageStatus );\n\t\t\t\tbreak;\n\t\t\tcase 6:// Acquire\n\t\t\t\tbRet = IssueAcquire( pRefDat );\n\t\t\t\t// The item has been possibly removed.\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel > 0 && g_bFileRemoved == false );\n\n// Close Image_Object\n\tbRet = RemoveChild( pRefItm, ulDatID );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL MovieCommandLoop( LPRefObj pRefItm, ULONG ulDatID )\n{\n\tLPRefObj\tpRefDat = NULL;\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\tif ( pRefDat == NULL ) {\n\t\t// Create Movie object and RefSrc structure.\n\t\tif ( AddChild( pRefItm, ulDatID ) == TRUE ) {\n\t\t\tprintf(\"Movie object is opened.\\n\");\n\t\t} else {\n\t\t\tprintf(\"Movie object can't be opened.\\n\");\n\t\t\treturn false;\n\t\t}\n\t\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\t}\n\n\t// command loop\n\tdo {\n\t\tprintf( \"\\nSelect (1-5, 0)\\n\" );\n\t\tprintf( \" 1. IsAlive                  2. Name                     3. StoredBytes\\n\" );\n\t\tprintf( \" 4. Pixels                   5. GetVideoImage\\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefDat, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 2:// Name\n\t\t\t\tbRet = SetStringCapability( pRefDat, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 3:// StoredBytes\n\t\t\t\tbRet = SetUnsignedCapability( pRefDat, kNkMAIDCapability_StoredBytes );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Show Pixels\n\t\t\t\t// Get to know how many pixels there are in this image.\n\t\t\t\tbRet = SetSizeCapability( pRefDat, kNkMAIDCapability_Pixels );\n\t\t\t\tbreak;\n\t\t\tcase 5:// GetVideoImage\n\t\t\t\tbRet = GetVideoImageCapability( pRefDat, kNkMAIDCapability_GetVideoImage );\n\t\t\t\t// The item has been possibly removed.\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel > 0 && g_bFileRemoved == false );\n\n// Close Movie_Object\n\tbRet = RemoveChild( pRefItm, ulDatID );\n\n\treturn bRet;\n}\n//------------------------------------------------------------------------------------------------------------------------------------\n//\nBOOL ThumbnailCommandLoop( LPRefObj pRefItm, ULONG ulDatID )\n{\n\tLPRefObj\tpRefDat = NULL;\n\tchar\tbuf[256];\n\tUWORD\twSel;\n\tBOOL\tbRet = true;\n\n\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\tif ( pRefDat == NULL ) {\n\t\t// Create Thumbnail object and RefSrc structure.\n\t\tif ( AddChild( pRefItm, ulDatID ) == TRUE ) {\n\t\t\tprintf(\"Thumbnail object is opened.\\n\");\n\t\t} else {\n\t\t\tprintf(\"Thumbnail object can't be opened.\\n\");\n\t\t\treturn false;\n\t\t}\n\t\tpRefDat = GetRefChildPtr_ID( pRefItm, ulDatID );\n\t}\n\n\t// command loop\n\tdo {\n\t\tprintf( \"\\nSelect (1-5, 0)\\n\" );\n\t\tprintf( \" 1. IsAlive                  2. Name                     3. StoredBytes\\n\" );\n\t\tprintf( \" 4. Pixels                   5. Acquire \\n\" );\n\t\tprintf( \" 0. Exit\\n>\" );\n\t\tscanf( \"%s\", buf );\n\t\twSel = atoi( buf );\n\n\t\tswitch( wSel )\n\t\t{\n\t\t\tcase 1:// IsAlive\n\t\t\t\tbRet = SetBoolCapability( pRefDat, kNkMAIDCapability_IsAlive );\n\t\t\t\tbreak;\n\t\t\tcase 2:// Name\n\t\t\t\tbRet = SetStringCapability( pRefDat, kNkMAIDCapability_Name );\n\t\t\t\tbreak;\n\t\t\tcase 3:// StoredBytes\n\t\t\t\tbRet = SetUnsignedCapability( pRefDat, kNkMAIDCapability_StoredBytes );\n\t\t\t\tbreak;\n\t\t\tcase 4:// Pixels\n\t\t\t\t// Get to know how many pixels there are in this image.\n\t\t\t\tbRet = SetSizeCapability( pRefDat, kNkMAIDCapability_Pixels );\n\t\t\t\tbreak;\n\t\t\tcase 5:// Acquire\n\t\t\t\tbRet = IssueAcquire( pRefDat );\n\t\t\t\tbreak;\n\t\t\tdefault:\n\t\t\t\twSel = 0;\n\t\t}\n\t\tif ( bRet == false ) {\n\t\t\tprintf( \"An Error occured. Enter '0' to exit.\\n>\" );\n\t\t\tscanf( \"%s\", buf );\n\t\t\tbRet = true;\n\t\t}\n\t} while( wSel > 0 );\n\n// Close Thumbnail_Object\n\tbRet = RemoveChild( pRefItm, ulDatID );\n\n\treturn bRet;\n}\n\n//------------------------------------------------------------------------------------------------------------------------------------\n//\n",
+			"file": "/C/Users/Gebruiker/AppData/Local/Temp/Temp1_S-SDKD7000-004BF-ALLIN.zip/S-SDKD7000-004BF-ALLIN/Module/Win/Sample Program/Type0004_CtrlSample_Win/main.cpp",
+			"file_size": 30675,
+			"file_write_time": 131676678215554458,
+			"settings":
+			{
+				"buffer_size": 29718,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/D/Online/Dropbox/Temp/AddRemoveClosure.Pseudo",
+			"settings":
+			{
+				"buffer_size": 1690,
+				"line_ending": "Unix"
 			}
 		}
 	],
@@ -549,7 +585,7 @@
 	},
 	"console":
 	{
-		"height": 143.0,
+		"height": 172.0,
 		"history":
 		[
 		]
@@ -572,6 +608,9 @@
 	],
 	"file_history":
 	[
+		"/D/Repositories/PhotoScript/adapters/Nikon_D7000_Driver/Maid3.h",
+		"/D/Repositories/PhotoScript/adapters/Nikon_D7000_Driver/NkEndian.h",
+		"/D/Repositories/PhotoScript/adapters/Nikon_D7000_Driver/NkTypes.h",
 		"/C/Users/Gebruiker/Desktop/PhotoScript2.c",
 		"/D/Repositories/PhotoScript/adapters/Nikkon_D7000.cpp",
 		"/D/Repositories/PhotoScript/src/Photo_Script.hpp",
@@ -636,7 +675,7 @@
 	],
 	"find":
 	{
-		"height": 23.0
+		"height": 30.0
 	},
 	"find_in_files":
 	{
@@ -711,15 +750,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1848,
+						"buffer_size": 1881,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								123,
-								123
+								450,
+								450
 							]
 						],
 						"settings":
@@ -733,17 +772,138 @@
 					},
 					"stack_index": 0,
 					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/Photo_Script_Parser.cpp",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 0,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++11/C++11.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/Photo_Script.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2378,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								108,
+								108
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/C/Users/Gebruiker/AppData/Local/Temp/Temp1_S-SDKD7000-004BF-ALLIN.zip/S-SDKD7000-004BF-ALLIN/Module/Win/Sample Program/Type0004_CtrlSample_Win/main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 29718,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1,
+								1
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 4,
+					"file": "/D/Online/Dropbox/Temp/AddRemoveClosure.Pseudo",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1690,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1390,
+								1390
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
 				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 21.0
+		"height": 30.0
 	},
 	"input":
 	{
-		"height": 52.0
+		"height": 100.0
 	},
 	"layout":
 	{
@@ -754,11 +914,18 @@
 				0,
 				1,
 				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
 			]
 		],
 		"cols":
 		[
 			0.0,
+			0.5,
 			1.0
 		],
 		"rows":
@@ -784,7 +951,7 @@
 	"project": "PhotoScript.sublime-project",
 	"replace":
 	{
-		"height": 42.0
+		"height": 56.0
 	},
 	"save_all_on_build": true,
 	"select_file":

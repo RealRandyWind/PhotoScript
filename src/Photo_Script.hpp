@@ -5,9 +5,10 @@
 #define CAMERA_MAX 64
 #define CAMERA_FPOINTS_MAX 512
 #define ADAPTER_MAX 32
-#define Exception_ExitMask 1
-#define Exception_TypeMask 16
-#define Exception_CodeMask ~(Exception_TypeMask | Exception_ExitMask)
+
+#define EXCEPTION_EXITMASK 1
+#define EXCEPTION_TYPEMASK 16
+#define EXCEPTION_CODEMASK ~(EXCEPTION_TYPEMASK | EXCEPTION_EXITMASK)
 
 #define _Trow_Exception(Code) _Exception((Code), __FUNCSIG__, __FILE__, (FSize)__LINE__)
 
@@ -17,6 +18,8 @@
 #define Failure -1
 #define Success 0
 #define None 0
+#define First 1
+#define Start 0
 
 typedef char * FString;
 typedef int FReturn;

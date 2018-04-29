@@ -1,10 +1,10 @@
 #include <Photo_Script>
 
 static FSize _CameraCount = 0;
-static struct FCamera Cameras[CAMERA_MAX];
+static struct FCamera Cameras[CAMERA_MAX] = {{None}};
 
 static FSize _AdapterCount = 0;
-static struct FAdapter _Adapters[ADAPTER_MAX];
+static struct FAdapter _Adapters[ADAPTER_MAX] = {{None}};
 
 FVoid _BeforeExitPhotoScript()
 {
@@ -14,11 +14,11 @@ FVoid _BeforeExitPhotoScript()
 FVoid _Exception(FSize Code, FString Function, FString File, FSize Line);
 {
 	printf("Exception(%d.%d) at \"%s\" in file \"%s\" line %d\n", 
-		Code & Exception_TypeMask, 
-		Code & Exception_CodeMask, 
+		Code & EXCEPTION_TYPEMASK,
+		Code & EXCEPTION_CODEMASK,
 		Function, File, Line);
 	
-	if(Code & Exception_ExitMask)
+	if(Code & EXCEPTION_EXITMASK)
 	{
 		_BeforeExitPhotoScript();
 		exit(EXIT_FAILURE);
