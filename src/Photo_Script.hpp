@@ -71,7 +71,7 @@ struct FCamera
 	FBoolean _Connected, _Valid;
 	FSize _ID, _DID, WB, ISO;
 	FReal A, S, TTL, EV, MM;
-	FReal Points[CAMERA_POINTS_MAX_X][CAMERA_POINTS_MAX_Y];
+	FReal Points[CAMERA_POINTS_MAX];
 	struct FPlan Plan;
 };
 
