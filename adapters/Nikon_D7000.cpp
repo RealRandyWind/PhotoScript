@@ -2,7 +2,7 @@
 
 /* Include Nikon headers */
 
-FReturn Nikon_D7000_Focus(struct FCamera *Camera)
+FReturn Nikon_D7000_Focus(FTime Time, struct FCamera *Camera)
 {
 	if(!_Assert_Camera(Camera))
 	{
@@ -52,7 +52,7 @@ FReturn Nikon_D7000_Mount(struct FCamera *Camera)
 	return Success;
 }
 
-FBool Nikon_D7000_Assert(struct FCamera *Camera)
+FBoolean Nikon_D7000_Assert(struct FCamera *Camera)
 {
 	if(!Camera)
 	{
@@ -62,7 +62,7 @@ FBool Nikon_D7000_Assert(struct FCamera *Camera)
 	return True;
 }
 
-FBool Nikon_D7000_Detect(FVoid)
+FBoolean Nikon_D7000_Detect(FVoid)
 {
 	return True;
 }

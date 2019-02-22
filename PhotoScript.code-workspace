@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"nikon_d7000": "cpp",
+			"photo_script": "cpp"
+		}
+	}
+}

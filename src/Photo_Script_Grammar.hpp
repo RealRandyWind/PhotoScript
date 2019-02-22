@@ -1,0 +1,4 @@
+#ifndef PHOTO_SCRIPT_GRAMMAR_HPP
+#define PHOTO_SCRIPT_GRAMMAR_HPP
+
+#endif

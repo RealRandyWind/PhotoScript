@@ -10,7 +10,7 @@ FReturn Nikon_D7000_Click(struct FCamera *Camera);
 FReturn Nikon_D7000_Update(struct FCamera *Camera);
 FReturn Nikon_D7000_UnMount(struct FCamera *Camera);
 FReturn Nikon_D7000_Mount(struct FCamera *Camera);
-FBool Nikon_D7000_Assert(struct FCamera *Camera);
-FBool Nikon_D7000_Detect(FVoid);
+FBoolean Nikon_D7000_Assert(struct FCamera *Camera);
+FBoolean Nikon_D7000_Detect(FVoid);
 
 #endif

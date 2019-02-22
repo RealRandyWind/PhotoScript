@@ -1,26 +1,33 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <Photo_Script>
 
+#define EXCEPTION_MSG_DDSSD "Exception(%d.%d) at \"%s\" in file \"%s\" line %d\n"
+
 static FSize _CameraCount = 0;
-static struct FCamera Cameras[CAMERA_MAX] = {{None}};
+static FSize _CameraID = 0;
+static struct FCamera _Cameras[CAMERA_MAX] = {{None}};
 
 static FSize _AdapterCount = 0;
+static FSize _AdapterID = 0;
 static struct FAdapter _Adapters[ADAPTER_MAX] = {{None}};
 
-FVoid _BeforeExitPhotoScript()
+FVoid _BeforeExit()
 {
 	/*cleanup everything */
 }
 
-FVoid _Exception(FSize Code, FString Function, FString File, FSize Line);
+FVoid _Exception(FSize Code, FString Function, FString File, FSize Line)
 {
-	printf("Exception(%d.%d) at \"%s\" in file \"%s\" line %d\n", 
+	printf(EXCEPTION_MSG_DDSSD, 
 		Code & EXCEPTION_TYPEMASK,
 		Code & EXCEPTION_CODEMASK,
 		Function, File, Line);
 	
 	if(Code & EXCEPTION_EXITMASK)
 	{
-		_BeforeExitPhotoScript();
+		_BeforeExit();
 		exit(EXIT_FAILURE);
 	}
 }
@@ -28,12 +35,17 @@ FVoid _Exception(FSize Code, FString Function, FString File, FSize Line);
 FUUID _UUID()
 {
 	FUUID ID;
+	FSize Index, End;
 
-	ID.A = ID.B = ID.C = ID.D = ID.E = 0;
+	End = HASH_SIZE;
+	for(Index = Start; Index < End; ++Index)
+	{
+		ID.Hash[Index] = None;
+	}
 	return ID;
 }
 
-FBool _Assert_Camera(struct FCamera *Camera)
+FBoolean _Assert_Camera(struct FCamera *Camera)
 {
 	if(!Camera)
 	{
@@ -60,7 +72,7 @@ FBool _Assert_Camera(struct FCamera *Camera)
 	return Camera->_Valid;
 }
 
-FBool _Assert_Adapter(struct FAdapter *Adapter)
+FBoolean _Assert_Adapter(struct FAdapter *Adapter)
 {
 	if(!Adapter)
 	{
@@ -118,7 +130,7 @@ FBool _Assert_Adapter(struct FAdapter *Adapter)
 
 FSize _Register(struct FAdapter Adapter)
 {
-	if (_AdapterCount < ADAPTER_MAX)
+	if(_AdapterCount < ADAPTER_MAX)
 	{
 		_Trow_Exception(0);
 		return ADAPTER_MAX;
@@ -129,33 +141,42 @@ FSize _Register(struct FAdapter Adapter)
 		return ADAPTER_MAX;
 	}
 
-	Adapter._ID = _AdapterCount;
-	_Adapters[_AdapterCount] = Adapter;
-	return _AdapterCount++;
+	Adapter._ID = _AdapterID;
+	_Adapters[Adapter._ID] = Adapter;
+	_AdapterID = _AdapterID < ++_AdapterCount
+		? _Adapters[_AdapterID]._ID
+		: _AdapterCount;
+	return Adapter._ID;
 }
 
 FSize _Mount(struct FAdapter *Adapter)
 {
+	FSize CameraID;
+
 	if(_CameraCount < CAMERA_MAX)
 	{
 		_Trow_Exception(0);
 		return CAMERA_MAX;
 	}
 
-	if(!Adapter._Valid)
+	if(!Adapter->_Valid)
 	{
 		_Trow_Exception(0);
 		return CAMERA_MAX;
 	}
 
-	if(Adapter._Mount(&Cameras[_CameraCount]) < Success)
+	if(Adapter->_Mount(&_Cameras[_CameraCount]) < Success)
 	{
 		_Trow_Exception(0);
 		return CAMERA_MAX;
-	};
+	}
 
-	Cameras[_CameraCount]._ID = _CameraCount;
-	return _CameraCount++;
+	CameraID = _CameraID;
+	_Cameras[CameraID]._ID = CameraID; 
+	_CameraID = _CameraID < ++_CameraCount
+		? _Cameras[CameraID]._ID
+		: _CameraCount;
+	return CameraID;
 }
 
 FSize _Detect(FVoid)

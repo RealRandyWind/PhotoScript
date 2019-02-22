@@ -1,9 +1,13 @@
 #ifndef PHOTO_SCRIPT_HPP
 #define PHOTO_SCRIPT_HPP
 
+#include <time.h>
+
 #define HASH_SIZE 8
+#define CAMERA_POINTS_MAX_X 36
+#define CAMERA_POINTS_MAX_Y 24
+#define CAMERA_POINTS_MAX (CAMERA_POINTS_MAX_X * CAMERA_POINTS_MAX_Y)
 #define CAMERA_MAX 64
-#define CAMERA_FPOINTS_MAX 512
 #define ADAPTER_MAX 32
 
 #define EXCEPTION_EXITMASK 1
@@ -21,10 +25,11 @@
 #define First 1
 #define Start 0
 
+typedef int FInteger;
 typedef char * FString;
 typedef int FReturn;
 typedef double FReal;
-typedef int FBool;
+typedef int FBoolean;
 typedef size_t FSize;
 typedef time_t FTime;
 typedef void FVoid;
@@ -40,20 +45,20 @@ struct FUUID
 struct FAdapter
 {
 	FSize _ID;
-	FBool _Valid;
+	FBoolean _Valid;
 	FReturn (* _Focus)(FTime, struct FCamera *);
 	FReturn (* _Click)(struct FCamera *);
 	FReturn (* _Update)(struct FCamera *);
 	FReturn (* _UnMount)(struct FCamera *);
 	FReturn (* _Mount)(struct FCamera *);
-	FBool (* _Assert)(struct FCamera *);
-	FBool (* _Detect)(FVoid);
+	FBoolean (* _Assert)(struct FCamera *);
+	FBoolean (* _Detect)(FVoid);
 };
 
 struct FPlan
 {
-	FSize _PID, NStops, N;
-	FTime TStart, TEnd, T, TDelta;
+	FSize _PID, _GID, _TID, NStops, N;
+	FTime TStart, TEnd, T, TEvery;
 	FVoid (* BeforeClick)(struct FCamera *);
 	FVoid (* AfterClick)(struct FCamera *);
 	FVoid (* BeforeFocus)(struct FCamera *);
@@ -63,21 +68,20 @@ struct FPlan
 struct FCamera
 {
 	FAdapter *_Adapter;
-	FBool _CONNECTED, _VALID;
-	FSize Center, Upper, Lower, Left, Right, UpperLeft, UpperRight, LowerLeft, LowerRight;
+	FBoolean _Connected, _Valid;
 	FSize _ID, _DID, WB, ISO;
-	FReal A, S, MM, LW;
-	FReal FPoints[CAMERA_FPOINTS_MAX];
+	FReal A, S, TTL, EV, MM;
+	FReal Points[CAMERA_POINTS_MAX_X][CAMERA_POINTS_MAX_Y];
 	struct FPlan Plan;
 };
 
 FUUID _UUID();
 
-FVoid _BeforeExitPhotoScript();
+FVoid _BeforeExit();
 
 FVoid _Exception(FSize, FString , FString , FSize);
-FBool _Assert_Camera(struct FCamera *);
-FBool _Addert_Adapter(struct FAdapter *);
+FBoolean _Assert_Camera(struct FCamera *);
+FBoolean _Assert_Adapter(struct FAdapter *);
 
 FSize _Register(struct FAdapter);
 FSize _Mount(struct FAdapter *);
